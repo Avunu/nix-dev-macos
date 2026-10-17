@@ -115,9 +115,7 @@
           # The user comes from the environment, so this check needs --impure
           # (the CI workflow passes it).
           eval = pkgs.runCommand "darwin-eval-check" { } ''
-            echo "${
-              builtins.unsafeDiscardStringContext self.darwinConfigurations.default.system.drvPath
-            }" > "$out"
+            echo "${builtins.unsafeDiscardStringContext self.darwinConfigurations.default.system.drvPath}" > "$out"
           '';
 
           pre-commit = git-hooks.lib.${system}.run {
