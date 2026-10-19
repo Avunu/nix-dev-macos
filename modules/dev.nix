@@ -17,7 +17,9 @@ let
   };
 in
 {
-  imports = [ inputs.determinate.darwinModules.default ];
+  imports = [
+    inputs.determinate.darwinModules.default
+  ];
 
   options.devHost = {
     username = mkOption {
@@ -62,16 +64,6 @@ in
       type = types.listOf types.package;
       default = [ ];
       description = "Additional packages to install";
-    };
-    brews = mkOption {
-      type = types.listOf types.str;
-      default = [ ];
-      description = "Additional Homebrew formulae (Homebrew itself must already be installed)";
-    };
-    casks = mkOption {
-      type = types.listOf types.str;
-      default = [ ];
-      description = "Additional Homebrew casks (Homebrew itself must already be installed)";
     };
   };
 
@@ -145,14 +137,6 @@ in
         cfg.username
         "@admin"
       ];
-    };
-
-    # Homebrew is only managed when something asks for it, and never
-    # uninstalls what the user installed by hand.
-    homebrew = mkIf (cfg.brews != [ ] || cfg.casks != [ ]) {
-      enable = true;
-      inherit (cfg) brews casks;
-      onActivation.cleanup = "none";
     };
 
     # Daily upgrade, the launchd counterpart of nixos-wsl's systemd timer.

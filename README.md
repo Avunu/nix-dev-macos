@@ -41,8 +41,7 @@ to pull it in sooner. Logs: `/var/log/system-upgrade.log`.
 
 ## Customising
 
-Fork it or set options in `flake.nix` under `devHost`: `extraPackages`, `brews`,
-`casks`, `ccache`, `containers`, `autoUpgrade`, `upgradeHour`, `upgradeFlake`.
+Fork it or set options in `flake.nix` under `devHost`: `extraPackages`, `ccache`, `containers`, `autoUpgrade`, `upgradeHour`, `upgradeFlake`.
 Also change `upgradeFlake`'s default in `modules/dev.nix` and the URLs in
 `flake.nix` if you fork, so the job pulls from your repository.
 

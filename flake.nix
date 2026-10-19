@@ -53,55 +53,72 @@
         else
           throw "Cannot tell which user to configure: run `sudo darwin-rebuild ... --impure` from your own account";
 
-      mkDarwin =
-        system:
-        nix-darwin.lib.darwinSystem {
-          inherit system;
-          specialArgs = { inherit inputs; };
-          modules = [
-            self.darwinModules.dev
-            {
-              # What `system-upgrade` compares against the repository's HEAD.
-              system.configurationRevision = self.rev or self.dirtyRev or null;
-
-              devHost = {
-                username = invokingUser;
-                stateVersion = 6;
-                extraPackages = [ ];
-              };
-            }
-          ];
-        };
-    in
-    {
-      darwinModules.dev = import ./modules/dev.nix { inherit inputs; };
-      darwinModules.default = self.darwinModules.dev;
-
-      # The one configuration every Mac runs, straight from this repository:
-      #   sudo darwin-rebuild switch --flake github:Avunu/nix-dev-macos#default --refresh --impure
-      # Nix cannot enumerate hostnames, but --impure is already required for
-      # the user, so the architecture is detected the same way instead of
-      # naming one configuration per machine or per arch. Its inputs are pinned
-      # by this repository's flake.lock, which Dependabot moves; the daily
-      # launchd job picks up each merge to `main`.
-      darwinConfigurations.default = mkDarwin (
+      detectedSystem =
         let
           detected = builtins.currentSystem;
         in
         if builtins.elem detected systems then
           detected
         else
-          throw "Unsupported system ${detected}: expected one of ${builtins.concatStringsSep ", " systems}"
-      );
+          throw "Unsupported system ${detected}: expected one of ${builtins.concatStringsSep ", " systems}";
 
-      packages = forAllSystems (system: {
-        system-upgrade = import ./pkgs/system-upgrade.nix {
-          pkgs = nixpkgs.legacyPackages.${system};
-          darwin-rebuild = nix-darwin.packages.${system}.darwin-rebuild;
-          flake = "github:Avunu/nix-dev-macos#default";
-          extraFlags = "--impure";
+      # A host flake (this one, or a downstream one such as macos-host-kevin)
+      # calls this with its own `self`, the flake reference it upgrades from,
+      # and extra modules. Everything in modules/dev.nix is inherited.
+      mkHost =
+        {
+          self,
+          upgradeFlake,
+          modules ? [ ],
+        }:
+        {
+          # The one configuration every Mac runs, straight from the host's
+          # repository:
+          #   sudo darwin-rebuild switch --flake <upgradeFlake> --refresh --impure
+          # Nix cannot enumerate hostnames, but --impure is already required
+          # for the user, so the architecture is detected the same way instead
+          # of naming one configuration per machine or per arch. Inputs are
+          # pinned by the host's flake.lock, which Dependabot moves; the daily
+          # launchd job picks up each merge to `main`.
+          darwinConfigurations.default = nix-darwin.lib.darwinSystem {
+            system = detectedSystem;
+            specialArgs = { inherit inputs; };
+            modules = [
+              (import ./modules/dev.nix { inherit inputs; })
+              {
+                # What `system-upgrade` compares against the repository's HEAD.
+                system.configurationRevision = self.rev or self.dirtyRev or null;
+                devHost = {
+                  username = invokingUser;
+                  inherit upgradeFlake;
+                };
+              }
+            ]
+            ++ modules;
+          };
+
+          packages = forAllSystems (system: {
+            system-upgrade = import ./pkgs/system-upgrade.nix {
+              pkgs = nixpkgs.legacyPackages.${system};
+              darwin-rebuild = nix-darwin.packages.${system}.darwin-rebuild;
+              flake = upgradeFlake;
+              extraFlags = "--impure";
+            };
+          });
         };
-      });
+
+      host = mkHost {
+        inherit self;
+        upgradeFlake = "github:Avunu/nix-dev-macos#default";
+      };
+    in
+    {
+      darwinModules.dev = import ./modules/dev.nix { inherit inputs; };
+      darwinModules.default = self.darwinModules.dev;
+
+      lib = { inherit mkHost invokingUser; };
+
+      inherit (host) darwinConfigurations packages;
 
       formatter = forAllSystems (system: nixpkgs.legacyPackages.${system}.nixfmt);
 
