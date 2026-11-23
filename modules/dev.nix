@@ -82,6 +82,7 @@ in
             flake8
             isort
             pandas
+            pip
             requests
           ]
         ))
