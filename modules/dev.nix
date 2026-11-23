@@ -94,6 +94,7 @@ in
           gh
           git
           gnumake
+          mosh
           nano
           nixfmt
           nodejs_latest
