@@ -90,6 +90,7 @@ in
           bun
           cmake
           curl
+          ffmpeg
           gh
           git
           gnumake
