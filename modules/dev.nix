@@ -95,6 +95,7 @@ in
           nano
           nixfmt
           nodejs_latest
+          uv
           wget
         ]
         (optionals cfg.ccache [ ccache ])
