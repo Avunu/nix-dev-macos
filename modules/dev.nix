@@ -97,6 +97,9 @@ in
           nano
           nixfmt
           nodejs_latest
+          pre-commit
+          prek
+          ruff
           uv
           wget
         ]
